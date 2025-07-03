@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request
 from flask_cors import CORS
 import pandas as pd
 
@@ -6,7 +6,6 @@ app = Flask(__name__)
 CORS(app)
 
 @app.route("/analyze", methods=["POST"])
-
 def analyze():
     all_input = request.json
     df = pd.read_excel(r"C:\Users\kjyng\Desktop\통화내역(테스트).xlsx")
@@ -18,81 +17,47 @@ def analyze():
         raise Exception('엑셀파일에 착신자, 발신자가 들어가는 열이 없습니다')
 
     df = df[[col_receive, col_send]].copy()
-
     df.columns = ['receive', 'send']
 
-    df['receive'] = df['receive'].astype(str)
-    df['send'] = df['send'].astype(str)
+    df['receive'] = df['receive'].astype(str).str.replace('-', '', regex=False)
+    df['send'] = df['send'].astype(str).str.replace('-', '', regex=False)
 
-    df['receive_clean'] = df['receive'].str.replace('-', '', regex=False)
-    df['send_clean'] = df['send'].str.replace('-', '', regex=False)
+    df['receive_tail'] = df['receive'].str[-8:]
+    df['send_tail'] = df['send'].str[-8:]
 
-    df['receive_tail'] = df['receive_clean'].str[-8:]
-    df['send_tail'] = df['send_clean'].str[-8:]
+    all_phone_numbers = pd.Index(df['receive_tail']).append(pd.Index(df['send_tail'])).unique()
+    result_df = pd.DataFrame({'phone_number': all_phone_numbers})
 
-
-    
-
-    # 중복제거
     all_input = list(set(all_input))
 
-    all_numbers = pd.Index(df['receive_tail']).append(pd.Index(df['send_tail'])).unique()
+    for special in all_input:
+        cond_recv = df['receive_tail'] == special
+        cond_send = df['send_tail'] == special
 
-    result = pd.DataFrame(all_numbers, columns=['phone_number'])
+        senders = df.loc[cond_recv, 'send_tail'].value_counts()
+        receivers = df.loc[cond_send, 'receive_tail'].value_counts()
+        total = senders.add(receivers, fill_value=0).astype(int)
 
-    def count_calls_with_special(df, special):
-        cdd_receive = df['receive_tail'] == special
-        cdd_send = df['send_tail'] == special
+        temp_df = pd.DataFrame({
+            'phone_number': total.index,
+            f'{special}_착신횟수': senders.reindex(total.index, fill_value=0).astype(int),
+            f'{special}_발신횟수': receivers.reindex(total.index, fill_value=0).astype(int),
+            f'{special}_총횟수': total.values
+        })
 
-        receive_side = df.loc[cdd_send, 'receive_tail'].value_counts()
-        send_side = df.loc[cdd_receive, 'send_tail'].value_counts()
+        result_df = result_df.merge(temp_df, on='phone_number', how='left')
 
-        total_counts = receive_side.add(send_side, fill_value=0)
-        return {
-            'total_counts' : total_counts,
-            'receive_side' : receive_side,
-            'send_side': send_side
-        }
+    result_df = result_df.fillna(0).astype({col: int for col in result_df.columns if col != 'phone_number'})
 
+    result_df = result_df[~result_df['phone_number'].isin(all_input)].copy()
 
-    for x in all_input:
-        counts_dict = count_calls_with_special(df, x)
-        total_counts = counts_dict['total_counts']
-        receive_side = counts_dict['receive_side']
-        send_side = counts_dict['send_side']
+    # 여기가 핵심! 총횟수 컬럼들만 합산해서 단일 최종총횟수 컬럼 생성
+    total_cols = [col for col in result_df.columns if col.endswith('_총횟수')]
+    result_df['최종총횟수'] = result_df[total_cols].sum(axis=1)
 
+    result_df = result_df.sort_values(by='최종총횟수', ascending=False).reset_index(drop=True)
 
-        result[x] = result['phone_number'].map(total_counts).fillna(0).astype(int)
-
-        if 'send' not in result:
-            result['send'] = result['phone_number'].map(receive_side).fillna(0).astype(int)
-        else:
-            result['send'] += result['phone_number'].map(receive_side).fillna(0).astype(int)
-        
-        if 'receive' not in result:
-            result['receive'] = result['phone_number'].map(send_side).fillna(0).astype(int)
-        else:
-            result['receive'] += result['phone_number'].map(send_side).fillna(0).astype(int)
-        
-
-
-
-    # 스페셜 번호 자기자신 제외하기
-    result = result[~result['phone_number'].isin(all_input)].copy()
-
-    result['total'] = result[all_input].sum(axis=1)
-
-    result = result.sort_values(by='total', ascending=False).reset_index(drop=True)
-
-    result = result.rename(columns={
-    'send': '총 발신 횟수',
-    'receive': '총 착신 횟수',
-    'total' : 'total(착신+발신)'
-    })
-
-    return result.to_json(orient="records", force_ascii=False)
+    return result_df.to_json(orient="records", force_ascii=False)
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-# print(result)
