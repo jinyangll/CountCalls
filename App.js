@@ -12,15 +12,17 @@ function App() {
 
   const addNum =()=>{
 
-    if (inputValue.trim() == "") return;
+    const cleaned = inputValue.trim().replace(/\s+/g, '');  // ✅ 앞뒤 + 중간 공백 제거
+
+    if (cleaned === "") return;
 
     const newItem = {
-      id : nextId.current,
-      text : inputValue
-    }
+      id: nextId.current,
+      text: cleaned
+    };
 
-    setAllNumber([...allNumber, newItem])
-    nextId.current +=1;
+    setAllNumber([...allNumber, newItem]);
+    nextId.current += 1;
     setInputValue("");
   }
 
@@ -56,6 +58,9 @@ function App() {
   return (
     <div className='box'>
       <h1>Text phone Number</h1> <br/>
+      <p>전화번호는 010과 -를 제외하고 입력하세요</p>
+      <p>010-1111-2222 (x)  /  1111 2222 (o)</p>
+
       <input type="text" value={inputValue} className='textBox'
       
       onKeyDown={(event)=>{
