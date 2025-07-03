@@ -58,8 +58,9 @@ function App() {
   return (
     <div className='box'>
       <h1>Text phone Number</h1> <br/>
-      <p>전화번호는 010과 -를 제외하고 입력하세요</p>
-      <p>010-1111-2222 (x)  /  1111 2222 (o)</p>
+      <p>전화번호는 010과 -를 제외하고 입력하세요, <br></br>(번호 사이의 띄어쓰기 유무는 상관없음)</p>
+      <p>010-1111-2222 (x)</p>
+      <p>1111 2222 (o)  /  11112222 (o)</p>
 
       <input type="text" value={inputValue} className='textBox'
       
