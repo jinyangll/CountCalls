@@ -11,11 +11,11 @@ def analyze():
     all_input = request.json
     df = pd.read_excel(r"C:\Users\kjyng\Desktop\통화내역(테스트).xlsx")
 
-    col_receive = next((col for col in df.columns if '착신' in col), None)
-    col_send = next((col for col in df.columns if '발신' in col), None)
+    col_receive = next((col for col in df.columns if '착신자(전화번호)' in col), None)
+    col_send = next((col for col in df.columns if '발신자(전화번호)' in col), None)
 
     if col_receive is None or col_send is None:
-        raise Exception('착신 또는 발신 컬럼이 존재하지 않습니다')
+        raise Exception('엑셀파일의 열 이름이 착신자(전화번호), 발신자(전화번호)여야 합니다.')
 
     df = df[[col_receive, col_send]].copy()
 
@@ -70,7 +70,7 @@ def analyze():
             result['send'] += result['phone_number'].map(receive_side).fillna(0).astype(int)
         
         if 'receive' not in result:
-            result['recieve'] = result['phone_number'].map(send_side).fillna(0).astype(int)
+            result['receive'] = result['phone_number'].map(send_side).fillna(0).astype(int)
         else:
             result['receive'] += result['phone_number'].map(send_side).fillna(0).astype(int)
         
@@ -83,6 +83,11 @@ def analyze():
     result['total'] = result[all_input].sum(axis=1)
 
     result = result.sort_values(by='total', ascending=False).reset_index(drop=True)
+
+    result = result.rename(columns={
+    'send': '발신 횟수',
+    'receive': '착신 횟수'
+    })
 
     return result.to_json(orient="records", force_ascii=False)
 
