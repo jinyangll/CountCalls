@@ -1,0 +1,29 @@
+.box {
+  text-align: center;
+}
+
+.textBox {
+  margin-right: 10px;
+}
+
+.btn {
+  border-radius: 10px;
+	border: 0px;
+	cursor: pointer;
+  font-size: large;
+  margin-top: 10px;
+}
+.btn:hover {
+  background-color: #594327;
+	color: white;
+	transition: 0.2s
+}
+
+.xBtn{
+  background-color: red;
+  color:white;
+  font-weight: 100;
+  border: 0px;
+  border-radius: 10;
+  margin-left: 5px;
+}
