@@ -48,12 +48,34 @@ def analyze():
         send_side = df.loc[cdd_receive, 'send_tail'].value_counts()
 
         total_counts = receive_side.add(send_side, fill_value=0)
-        return total_counts
+        return {
+            'total_counts' : total_counts,
+            'receive_side' : receive_side,
+            'send_side': send_side
+        }
 
 
     for x in all_input:
-        counts = count_calls_with_special(df, x)
-        result[x] = result['phone_number'].map(counts).fillna(0).astype(int)
+        counts_dict = count_calls_with_special(df, x)
+        total_counts = counts_dict['total_counts']
+        receive_side = counts_dict['receive_side']
+        send_side = counts_dict['send_side']
+
+
+        result[x] = result['phone_number'].map(total_counts).fillna(0).astype(int)
+
+        if 'send' not in result:
+            result['send'] = result['phone_number'].map(receive_side).fillna(0).astype(int)
+        else:
+            result['send'] += result['phone_number'].map(receive_side).fillna(0).astype(int)
+        
+        if 'receive' not in result:
+            result['recieve'] = result['phone_number'].map(send_side).fillna(0).astype(int)
+        else:
+            result['receive'] += result['phone_number'].map(send_side).fillna(0).astype(int)
+        
+
+
 
     # 스페셜 번호 자기자신 제외하기
     result = result[~result['phone_number'].isin(all_input)].copy()
