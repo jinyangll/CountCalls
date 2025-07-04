@@ -26,4 +26,14 @@
   border: 0px;
   border-radius: 10;
   margin-left: 5px;
+  cursor: pointer;
+}
+
+
+.result-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+  background-color: rgb(247, 243, 243);
 }
