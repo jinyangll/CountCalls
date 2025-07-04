@@ -181,7 +181,7 @@ function App() {
       {result.length > 0 && (
         <div className="result-box" style={{ overflowX: "auto", marginTop: '20px' }}>
           <h2>분석 결과</h2>
-          <table border="1" style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table border="1" style={{ borderCollapse: 'collapse' }}>
             <thead>
               <tr>
                 <th rowSpan={2} style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>phone_number</th>
