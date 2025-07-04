@@ -1,10 +1,18 @@
-from flask import Flask, request, jsonify # jsonify 추가
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
-import json # json 모듈 추가
+import json
 
 app = Flask(__name__)
 CORS(app)
+
+# --- 추가된 부분 시작: 루트 경로 (GET /) 라우트 추가 ---
+# Render의 헬스 체크나 사용자가 백엔드 URL로 직접 접속했을 때
+# 404 Not Found가 아닌 응답을 주기 위함입니다.
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({"message": "Flask backend is running and ready to receive requests at /analyze"}), 200
+# --- 추가된 부분 끝 ---
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
@@ -99,4 +107,6 @@ def analyze():
     # --- 수정된 부분 끝 ---
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=5000) # 로컬 테스트를 위해 host와 port 명시
+    # Render에서는 이 부분이 실행되지 않고 gunicorn이 앱을 실행합니다.
+    # 로컬 테스트를 위해 host와 port 명시
+    app.run(debug=True, host='0.0.0.0', port=5000)
