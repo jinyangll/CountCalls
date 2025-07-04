@@ -12,6 +12,12 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  // --- 추가된 부분 시작: API_BASE_URL 정의 ---
+  // process.env.REACT_APP_API_URL은 Render에서 설정할 환경 변수입니다.
+  // 로컬 개발 환경에서는 이 변수가 없으므로, 기본값으로 http://localhost:5000을 사용합니다.
+  const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+  // --- 추가된 부분 끝 ---
+
   const addNum = () => {
     const cleaned = inputValue.trim().replace(/\s+/g, "");
     if (cleaned === "") {
@@ -40,20 +46,18 @@ function App() {
     if (file && file.name.endsWith(".xlsx")) {
       setSelectedFile(file);
       setErrorMessage("");
-      console.log("파일이 선택되었습니다:", file.name, file); // 디버깅용 로그
+      console.log("파일이 선택되었습니다:", file.name, file);
     } else {
       setSelectedFile(null);
       setErrorMessage("유효한 .xlsx 엑셀 파일을 선택해주세요.");
-      console.log("유효하지 않은 파일이 선택되었습니다."); // 디버깅용 로그
+      console.log("유효하지 않은 파일이 선택되었습니다.");
     }
   };
 
   const sendToServer = () => {
-    // --- 디버깅용 로그 추가 ---
     console.log("sendToServer 호출됨");
     console.log("현재 selectedFile 상태:", selectedFile);
     console.log("현재 allNumber 상태:", allNumber.map((item) => item.text));
-    // --- 디버깅용 로그 끝 ---
 
     if (!selectedFile) {
       setErrorMessage("엑셀 파일을 먼저 선택해주세요.");
@@ -72,16 +76,16 @@ function App() {
     formData.append("file", selectedFile);
     formData.append("numbers", JSON.stringify(allNumber.map((item) => item.text)));
 
-    // --- 디버깅용 로그 추가: FormData 내용 확인 ---
     for (let pair of formData.entries()) {
       console.log(pair[0]+ ', ' + pair[1]);
     }
-    // --- 디버깅용 로그 끝 ---
 
-    fetch("http://localhost:5000/analyze", {
+    // --- 수정된 부분 시작: fetch URL에 API_BASE_URL 사용 ---
+    fetch(`${API_BASE_URL}/analyze`, { // 백틱(` `)을 사용하여 템플릿 리터럴로 URL을 만듭니다.
       method: "POST",
       body: formData,
     })
+    // --- 수정된 부분 끝 ---
       .then((res) => {
         setIsLoading(false);
         if (!res.ok) {
@@ -126,14 +130,14 @@ function App() {
       <input
         type="text"
         value={inputValue}
-        className="textBox"
+        className="textBox" /* App.css의 .textBox 클래스 사용 */
         onKeyDown={(event) => {
           if (event.key === "Enter") addNum();
         }}
         onChange={(event) => setInputValue(event.target.value)}
       />
       <button onClick={addNum} className="btn">
-        전화번호 추가
+        추가
       </button>
 
       <Board allNumber={allNumber} onDelete={deleteItem} />
