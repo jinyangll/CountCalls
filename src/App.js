@@ -8,9 +8,22 @@ function App() {
   const nextId = useRef(1);
   const [result, setResult] = useState([]);
 
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
   const addNum = () => {
     const cleaned = inputValue.trim().replace(/\s+/g, "");
-    if (cleaned === "") return;
+    if (cleaned === "") {
+      setErrorMessage("전화번호를 입력해주세요.");
+      return;
+    }
+    setErrorMessage("");
+
+    if (allNumber.some(item => item.text === cleaned)) {
+      setErrorMessage("이미 추가된 전화번호입니다.");
+      return;
+    }
 
     const newItem = { id: nextId.current, text: cleaned };
     setAllNumber([...allNumber, newItem]);
@@ -22,30 +35,79 @@ function App() {
     setAllNumber(allNumber.filter((item) => item.id !== id));
   };
 
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file && file.name.endsWith(".xlsx")) {
+      setSelectedFile(file);
+      setErrorMessage("");
+      console.log("파일이 선택되었습니다:", file.name, file); // 디버깅용 로그
+    } else {
+      setSelectedFile(null);
+      setErrorMessage("유효한 .xlsx 엑셀 파일을 선택해주세요.");
+      console.log("유효하지 않은 파일이 선택되었습니다."); // 디버깅용 로그
+    }
+  };
+
   const sendToServer = () => {
+    // --- 디버깅용 로그 추가 ---
+    console.log("sendToServer 호출됨");
+    console.log("현재 selectedFile 상태:", selectedFile);
+    console.log("현재 allNumber 상태:", allNumber.map((item) => item.text));
+    // --- 디버깅용 로그 끝 ---
+
+    if (!selectedFile) {
+      setErrorMessage("엑셀 파일을 먼저 선택해주세요.");
+      return;
+    }
+    if (allNumber.length === 0) {
+      setErrorMessage("분석할 전화번호를 최소 하나 이상 추가해주세요.");
+      return;
+    }
+
+    setErrorMessage("");
+    setIsLoading(true);
+    setResult([]);
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("numbers", JSON.stringify(allNumber.map((item) => item.text)));
+
+    // --- 디버깅용 로그 추가: FormData 내용 확인 ---
+    for (let pair of formData.entries()) {
+      console.log(pair[0]+ ', ' + pair[1]);
+    }
+    // --- 디버깅용 로그 끝 ---
+
     fetch("http://localhost:5000/analyze", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(allNumber.map((item) => item.text)),
+      body: formData,
     })
-      .then((res) => res.json())
+      .then((res) => {
+        setIsLoading(false);
+        if (!res.ok) {
+          return res.json().then(errorData => {
+            throw new Error(errorData.error || "서버 오류가 발생했습니다.");
+          });
+        }
+        return res.json();
+      })
       .then((data) => {
         setResult(data);
       })
       .catch((err) => {
         console.error("서버 요청 중 오류발생: ", err);
+        setErrorMessage(`요청 실패: ${err.message || "알 수 없는 오류"}`);
       });
   };
 
-  // special 번호 목록 (최종총횟수 제외)
   const specialNumbers = result.length
     ? Object.keys(result[0])
         .filter(
           (key) =>
             key !== "phone_number" &&
-            key !== "최종총횟수"
+            key !== "최종총횟수" &&
+            (key.endsWith("_착신횟수") || key.endsWith("_발신횟수") || key.endsWith("_총횟수"))
         )
-        // _총횟수, _착신횟수, _발신횟수 중에서 unique special 번호만 뽑기
         .map((key) => key.split("_")[0])
         .filter((v, i, self) => self.indexOf(v) === i)
     : [];
@@ -71,52 +133,86 @@ function App() {
         onChange={(event) => setInputValue(event.target.value)}
       />
       <button onClick={addNum} className="btn">
-        추가
+        전화번호 추가
       </button>
 
       <Board allNumber={allNumber} onDelete={deleteItem} />
 
-      <button className="btn" onClick={sendToServer}>
-        실행
+      <div style={{ marginTop: '20px', marginBottom: '20px' }}>
+        <label htmlFor="excel-upload" style={{ display: 'block', marginBottom: '5px' }}>
+          엑셀 파일 업로드 (.xlsx)
+        </label>
+        <input
+          type="file"
+          id="excel-upload"
+          accept=".xlsx"
+          onChange={handleFileChange}
+          style={{ border: '1px solid #ccc', padding: '8px', borderRadius: '4px' }}
+        />
+        {selectedFile && (
+          <p style={{ fontSize: '0.9em', color: '#555', marginTop: '5px' }}>
+            선택된 파일: {selectedFile.name}
+          </p>
+        )}
+      </div>
+
+      {errorMessage && (
+        <div style={{ color: 'red', border: '1px solid red', padding: '10px', borderRadius: '5px', marginBottom: '15px' }}>
+          <strong>오류:</strong> {errorMessage}
+        </div>
+      )}
+
+      <button
+        className="btn"
+        onClick={sendToServer}
+        disabled={isLoading}
+      >
+        {isLoading ? "분석 중..." : "실행"}
       </button>
 
+      {isLoading && (
+        <div style={{ marginTop: '10px', textAlign: 'center', color: '#555' }}>
+          데이터를 분석하고 있습니다...
+        </div>
+      )}
+
       {result.length > 0 && (
-        <div className="result-box" style={{ overflowX: "auto" }}>
+        <div className="result-box" style={{ overflowX: "auto", marginTop: '20px' }}>
           <h2>분석 결과</h2>
-          <table border="1">
+          <table border="1" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th rowSpan={2}>phone_number</th>
+                <th rowSpan={2} style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>phone_number</th>
                 {specialNumbers.map((special) => (
-                  <th key={special} colSpan={3} style={{ textAlign: "center" }}>
+                  <th key={special} colSpan={3} style={{ textAlign: "center", padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>
                     {special}
                   </th>
                 ))}
-                <th rowSpan={2}>최종총횟수</th>
+                <th rowSpan={2} style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>최종총횟수</th>
               </tr>
               <tr>
                 {specialNumbers.map((special) => (
                   <React.Fragment key={special}>
-                    <th>착신횟수</th>
-                    <th>발신횟수</th>
-                    <th>총횟수</th>
+                    <th style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>착신횟수</th>
+                    <th style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>발신횟수</th>
+                    <th style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>총횟수</th>
                   </React.Fragment>
                 ))}
               </tr>
             </thead>
             <tbody>
               {result.map((row, i) => (
-                <tr key={i}>
-                  <td>{row.phone_number}</td>
-                  {specialNumbers.map((special) => (
-                    <React.Fragment key={special}>
-                      <td>{row[`${special}_착신횟수`] ?? 0}</td>
-                      <td>{row[`${special}_발신횟수`] ?? 0}</td>
-                      <td>{row[`${special}_총횟수`] ?? 0}</td>
-                    </React.Fragment>
-                  ))}
-                  <td>{row.최종총횟수}</td>
-                </tr>
+                  <tr key={i}>
+                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>{row.phone_number}</td>
+                    {specialNumbers.map((special) => (
+                      <React.Fragment key={special}>
+                        <td style={{ padding: '8px', border: '1px solid #ddd' }}>{row[`${special}_착신횟수`] ?? 0}</td>
+                        <td style={{ padding: '8px', border: '1px solid #ddd' }}>{row[`${special}_발신횟수`] ?? 0}</td>
+                        <td style={{ padding: '8px', 'border': '1px solid #ddd' }}>{row[`${special}_총횟수`] ?? 0}</td>
+                      </React.Fragment>
+                    ))}
+                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>{row.최종총횟수}</td>
+                  </tr>
               ))}
             </tbody>
           </table>
