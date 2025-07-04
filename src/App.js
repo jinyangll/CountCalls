@@ -12,11 +12,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // --- 추가된 부분 시작: API_BASE_URL 정의 ---
-  // process.env.REACT_APP_API_URL은 Render에서 설정할 환경 변수입니다.
-  // 로컬 개발 환경에서는 이 변수가 없으므로, 기본값으로 http://localhost:5000을 사용합니다.
   const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
-  // --- 추가된 부분 끝 ---
 
   const addNum = () => {
     const cleaned = inputValue.trim().replace(/\s+/g, "");
@@ -80,12 +76,10 @@ function App() {
       console.log(pair[0]+ ', ' + pair[1]);
     }
 
-    // --- 수정된 부분 시작: fetch URL에 API_BASE_URL 사용 ---
-    fetch(`${API_BASE_URL}/analyze`, { // 백틱(` `)을 사용하여 템플릿 리터럴로 URL을 만듭니다.
+    fetch(`${API_BASE_URL}/analyze`, {
       method: "POST",
       body: formData,
     })
-    // --- 수정된 부분 끝 ---
       .then((res) => {
         setIsLoading(false);
         if (!res.ok) {
@@ -104,17 +98,21 @@ function App() {
       });
   };
 
+  // --- 수정된 부분 시작: specialNumbers 필터링 로직 변경 ---
   const specialNumbers = result.length
     ? Object.keys(result[0])
         .filter(
           (key) =>
             key !== "phone_number" &&
-            key !== "최종총횟수" &&
-            (key.endsWith("_착신횟수") || key.endsWith("_발신횟수") || key.endsWith("_총횟수"))
+            key !== "total" && // '최종총횟수' 대신 'total'로 변경
+            // '_착신', '_발신', '_총' 접미사를 가진 키만 필터링
+            (key.endsWith("_착신") || key.endsWith("_발신") || key.endsWith("_총"))
         )
+        // 접미사를 제거하여 고유한 special 번호만 추출
         .map((key) => key.split("_")[0])
-        .filter((v, i, self) => self.indexOf(v) === i)
+        .filter((v, i, self) => self.indexOf(v) === i) // 중복 제거
     : [];
+  // --- 수정된 부분 끝 ---
 
   return (
     <div className="box">
@@ -192,14 +190,20 @@ function App() {
                     {special}
                   </th>
                 ))}
-                <th rowSpan={2} style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>최종총횟수</th>
+                {/* --- 수정된 부분: '최종총횟수' -> 'Total' --- */}
+                <th rowSpan={2} style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>Total</th>
+                {/* --- 수정된 부분 끝 --- */}
               </tr>
               <tr>
                 {specialNumbers.map((special) => (
                   <React.Fragment key={special}>
-                    <th style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>착신횟수</th>
-                    <th style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>발신횟수</th>
-                    <th style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>총횟수</th>
+                    {/* --- 수정된 부분: '착신횟수' -> '착신' --- */}
+                    <th style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>착신</th>
+                    {/* --- 수정된 부분: '발신횟수' -> '발신' --- */}
+                    <th style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>발신</th>
+                    {/* --- 수정된 부분: '총횟수' -> '총' --- */}
+                    <th style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>총</th>
+                    {/* --- 수정된 부분 끝 --- */}
                   </React.Fragment>
                 ))}
               </tr>
@@ -210,12 +214,18 @@ function App() {
                     <td style={{ padding: '8px', border: '1px solid #ddd' }}>{row.phone_number}</td>
                     {specialNumbers.map((special) => (
                       <React.Fragment key={special}>
-                        <td style={{ padding: '8px', border: '1px solid #ddd' }}>{row[`${special}_착신횟수`] ?? 0}</td>
-                        <td style={{ padding: '8px', border: '1px solid #ddd' }}>{row[`${special}_발신횟수`] ?? 0}</td>
-                        <td style={{ padding: '8px', 'border': '1px solid #ddd' }}>{row[`${special}_총횟수`] ?? 0}</td>
+                        {/* --- 수정된 부분: 데이터 접근 컬럼 이름 변경 ('_착신횟수' -> '_착신') --- */}
+                        <td style={{ padding: '8px', border: '1px solid #ddd' }}>{row[`${special}_착신`] ?? 0}</td>
+                        {/* --- 수정된 부분: 데이터 접근 컬럼 이름 변경 ('_발신횟수' -> '_발신') --- */}
+                        <td style={{ padding: '8px', border: '1px solid #ddd' }}>{row[`${special}_발신`] ?? 0}</td>
+                        {/* --- 수정된 부분: 데이터 접근 컬럼 이름 변경 ('_총횟수' -> '_총') --- */}
+                        <td style={{ padding: '8px', 'border': '1px solid #ddd' }}>{row[`${special}_총`] ?? 0}</td>
+                        {/* --- 수정된 부분 끝 --- */}
                       </React.Fragment>
                     ))}
-                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>{row.최종총횟수}</td>
+                    {/* --- 수정된 부분: 데이터 접근 컬럼 이름 변경 ('최종총횟수' -> 'total') --- */}
+                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>{row.total}</td>
+                    {/* --- 수정된 부분 끝 --- */}
                   </tr>
               ))}
             </tbody>
