@@ -98,21 +98,17 @@ function App() {
       });
   };
 
-  // --- 수정된 부분 시작: specialNumbers 필터링 로직 변경 ---
   const specialNumbers = result.length
     ? Object.keys(result[0])
         .filter(
           (key) =>
             key !== "phone_number" &&
-            key !== "total" && // '최종총횟수' 대신 'total'로 변경
-            // '_착신', '_발신', '_총' 접미사를 가진 키만 필터링
+            key !== "total" && 
             (key.endsWith("_착신") || key.endsWith("_발신") || key.endsWith("_총"))
         )
-        // 접미사를 제거하여 고유한 special 번호만 추출
         .map((key) => key.split("_")[0])
         .filter((v, i, self) => self.indexOf(v) === i) // 중복 제거
     : [];
-  // --- 수정된 부분 끝 ---
 
   return (
     <div className="box">
@@ -128,7 +124,7 @@ function App() {
       <input
         type="text"
         value={inputValue}
-        className="textBox" /* App.css의 .textBox 클래스 사용 */
+        className="textBox"
         onKeyDown={(event) => {
           if (event.key === "Enter") addNum();
         }}
@@ -181,7 +177,7 @@ function App() {
       {result.length > 0 && (
         <div className="result-box" style={{ overflowX: "scroll", marginTop: '20px' }}>
           <h2>분석 결과</h2>
-          <table border="1" style={{ borderCollapse: 'collapse', minWidth: 'max-content' }}>
+          <table border="1" style={{ borderCollapse: 'collapse' , minWidth: 'max-content'}}>
             <thead>
               <tr>
                 <th rowSpan={2} style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>phone_number</th>
@@ -190,20 +186,14 @@ function App() {
                     {special}
                   </th>
                 ))}
-                {/* --- 수정된 부분: '최종총횟수' -> 'Total' --- */}
                 <th rowSpan={2} style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>Total</th>
-                {/* --- 수정된 부분 끝 --- */}
               </tr>
               <tr>
                 {specialNumbers.map((special) => (
                   <React.Fragment key={special}>
-                    {/* --- 수정된 부분: '착신횟수' -> '착신' --- */}
                     <th style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>착신</th>
-                    {/* --- 수정된 부분: '발신횟수' -> '발신' --- */}
                     <th style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>발신</th>
-                    {/* --- 수정된 부분: '총횟수' -> '총' --- */}
                     <th style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f2f2f2' }}>총</th>
-                    {/* --- 수정된 부분 끝 --- */}
                   </React.Fragment>
                 ))}
               </tr>
@@ -214,18 +204,12 @@ function App() {
                     <td style={{ padding: '8px', border: '1px solid #ddd' }}>{row.phone_number}</td>
                     {specialNumbers.map((special) => (
                       <React.Fragment key={special}>
-                        {/* --- 수정된 부분: 데이터 접근 컬럼 이름 변경 ('_착신횟수' -> '_착신') --- */}
                         <td style={{ padding: '8px', border: '1px solid #ddd' }}>{row[`${special}_착신`] ?? 0}</td>
-                        {/* --- 수정된 부분: 데이터 접근 컬럼 이름 변경 ('_발신횟수' -> '_발신') --- */}
                         <td style={{ padding: '8px', border: '1px solid #ddd' }}>{row[`${special}_발신`] ?? 0}</td>
-                        {/* --- 수정된 부분: 데이터 접근 컬럼 이름 변경 ('_총횟수' -> '_총') --- */}
                         <td style={{ padding: '8px', 'border': '1px solid #ddd' }}>{row[`${special}_총`] ?? 0}</td>
-                        {/* --- 수정된 부분 끝 --- */}
                       </React.Fragment>
                     ))}
-                    {/* --- 수정된 부분: 데이터 접근 컬럼 이름 변경 ('최종총횟수' -> 'total') --- */}
                     <td style={{ padding: '8px', border: '1px solid #ddd' }}>{row.total}</td>
-                    {/* --- 수정된 부분 끝 --- */}
                   </tr>
               ))}
             </tbody>
