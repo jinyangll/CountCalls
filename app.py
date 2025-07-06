@@ -64,11 +64,9 @@ def analyze():
 
         temp_df = pd.DataFrame({
             'phone_number': total.index,
-            # --- 수정된 부분 시작: 컬럼 이름 변경 ('착신횟수' -> '착신', '발신횟수' -> '발신', '총횟수' -> '총') ---
             f'{special}_착신': senders.reindex(total.index, fill_value=0).astype(int),
             f'{special}_발신': receivers.reindex(total.index, fill_value=0).astype(int),
             f'{special}_총': total.values
-            # --- 수정된 부분 끝 ---
         })
 
         result_df = result_df.merge(temp_df, on='phone_number', how='left')
@@ -77,14 +75,10 @@ def analyze():
 
     result_df = result_df[~result_df['phone_number'].isin(all_input)].copy()
 
-    total_cols = [col for col in result_df.columns if col.endswith('_총')] # '총횟수' 대신 '_총'으로 필터링
-    # --- 수정된 부분 시작: 최종총횟수 컬럼 이름 변경 ('최종총횟수' -> 'total') ---
+    total_cols = [col for col in result_df.columns if col.endswith('_총')] 
     result_df['total'] = result_df[total_cols].sum(axis=1)
-    # --- 수정된 부분 끝 ---
 
-    # --- 수정된 부분: 정렬 기준 컬럼 이름 변경 ('최종총횟수' -> 'total') ---
     result_df = result_df.sort_values(by='total', ascending=False).reset_index(drop=True)
-    # --- 수정된 부분 끝 ---
 
     return jsonify(result_df.to_dict(orient="records"))
 
