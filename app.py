@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
 import json
+import os
 
 app = Flask(__name__)
 CORS(app)
@@ -18,6 +19,8 @@ def analyze():
     if file.filename == '':
         return jsonify({"error": "선택된 엑셀 파일이 없습니다."}), 400
 
+    ext = os.path.splitext(file.filename)[-1].lower()
+    
     all_input_str = request.form.get('numbers')
     if not all_input_str:
         return jsonify({"error": "분석할 전화번호 목록이 제공되지 않았습니다."}), 400
@@ -28,17 +31,25 @@ def analyze():
             return jsonify({"error": "전화번호 목록 형식이 올바르지 않습니다. (리스트 형태여야 함)"}), 400
     except json.JSONDecodeError:
         return jsonify({"error": "제공된 전화번호 목록의 JSON 형식이 잘못되었습니다."}), 400
-
+        
+    # 수정
     try:
-        df = pd.read_excel(file)
+        if ext == '.xlsx':
+            df = pd.read_excel(file, engine='openpyxl')
+        elif ext == '.xls':
+            df = pd.read_excel(file, engine='xlrd')
+        else:
+            return jsonify({"error": "지원하지 않는 파일 형식입니다. (.xls 또는 .xlsx만 허용됨)"}), 400
     except Exception as e:
         return jsonify({"error": f"엑셀 파일을 읽는 중 오류가 발생했습니다: {str(e)}"}), 500
 
+    #####
+    
     col_receive = next((col for col in df.columns if '착신' in col.strip()), None)
     col_send = next((col for col in df.columns if '발신' in col.strip()), None)
 
     if col_receive is None or col_send is None:
-        return jsonify({"error": "엑셀파일에 '착신자' 또는 '발신자'가 들어가는 열이 없습니다."}), 400
+        return jsonify({"error": "엑셀파일에 '착신' 또는 '발신'가 들어가는 열이 없습니다."}), 400
 
     df = df[[col_receive, col_send]].copy()
     df.columns = ['receive', 'send']
