@@ -34,8 +34,8 @@ def analyze():
     except Exception as e:
         return jsonify({"error": f"엑셀 파일을 읽는 중 오류가 발생했습니다: {str(e)}"}), 500
 
-    col_receive = next((col for col in df.columns if '착신자' in col.strip()), None)
-    col_send = next((col for col in df.columns if '발신자' in col.strip()), None)
+    col_receive = next((col for col in df.columns if '착신' in col.strip()), None)
+    col_send = next((col for col in df.columns if '발신' in col.strip()), None)
 
     if col_receive is None or col_send is None:
         return jsonify({"error": "엑셀파일에 '착신자' 또는 '발신자'가 들어가는 열이 없습니다."}), 400
